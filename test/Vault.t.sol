@@ -27,12 +27,12 @@ contract VaultTest is Test {
         vm.assume(shares < INITIAL_WANT_BALANCE && shares > 0);
         uint256 beforeTotalShares = vault.totalSupply();
         uint256 beforeTotalAssets = vault.totalAssets();
-        uint256 previewShares = vault.previewMint(shares);
 
         uint assets = vault.mint(shares, address(this));
 
         uint256 afterTotalShares = vault.totalSupply();
         uint256 afterTotalAssets = vault.totalAssets();
+
         assertEq(afterTotalShares, beforeTotalShares + shares, "Supply Should be increased after deposit");
         assertEq(afterTotalAssets, beforeTotalAssets + assets, "Managed Assets Should be increased after deposit");
     }
@@ -41,10 +41,12 @@ contract VaultTest is Test {
         vm.assume(assets < INITIAL_WANT_BALANCE && assets > 0);
         uint256 beforeTotalShares = vault.totalSupply();
         uint256 beforeTotalAssets = vault.totalAssets();
+
         uint shares = vault.deposit(assets, address(this));
 
         uint256 afterTotalShares = vault.totalSupply();
         uint256 afterTotalAssets = vault.totalAssets();
+        
         assertEq(afterTotalShares, beforeTotalShares + shares, "Supply Should be increased after deposit");
         assertEq(afterTotalAssets, beforeTotalAssets + assets, "Managed Assets Should be increased after deposit");
     }

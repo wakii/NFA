@@ -38,18 +38,22 @@ contract Vault is IVault, ERC20, ReentrancyGuard {
         return IERC20(asset).balanceOf(address(this)); // TODO add Strategy want balance;
      }
 
-    function convertToShares(uint256 assets) external view override returns (uint256 shares) {
+    function convertToShares(uint256 assets) public view override returns (uint256 shares) {
+        uint256 supply = totalSupply();
+        return supply == 0 ? assets : assets * supply / totalAssets();
     }
 
-    function convertToAssets(uint256 shares) external view override returns (uint256 assets) {}
+    function convertToAssets(uint256 shares) public view override returns (uint256 assets) {
+        uint256 supply = totalSupply();
+        return supply == 0 ? shares : shares / supply * totalAssets();
+    }
 
     function maxDeposit(address receiver) external pure override returns (uint256 maxAssets) {
         return type(uint256).max; // TODO IF whiltelist max, ELSE 0
     }
 
     function previewDeposit(uint256 assets) public view override returns (uint256 shares) {
-        uint256 supply = totalSupply();
-        return supply == 0 ? assets : assets * supply / totalAssets();
+        return convertToShares(assets);
     }
 
     function deposit(uint256 assets, address receiver) external override nonReentrant returns (uint256 shares) {
@@ -64,8 +68,7 @@ contract Vault is IVault, ERC20, ReentrancyGuard {
     }
 
     function previewMint(uint256 shares) public view returns (uint256 assets) {
-        uint256 supply = totalSupply();
-        return supply == 0 ? shares : shares / supply * totalAssets();
+        return convertToAssets(shares);
     }
 
     function mint(uint256 shares, address receiver) external returns (uint256 assets) {
