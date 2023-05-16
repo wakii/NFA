@@ -70,7 +70,7 @@ contract Vault is IVault, ERC20, ReentrancyGuard {
 
     function mint(uint256 shares, address receiver) external returns (uint256 assets) {
         require(shares <= maxMint(receiver), "OVER MINT");
-        require((assets = previewMint(shares))> 0, "NOT ENOUGH SHARES");
+        require((assets = previewMint(shares)) > 0, "NOT ENOUGH SHARES");
         IERC20(asset).safeTransferFrom(msg.sender, address(this), assets);
         _mint(receiver, shares);
         emit Deposit(msg.sender, receiver, assets, shares);
