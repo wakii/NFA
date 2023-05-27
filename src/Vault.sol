@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
-import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
-import {ERC20} from "openzeppelin-contracts/token/ERC20/ERC20.sol";
-import {SafeERC20} from "openzeppelin-contracts/token/ERC20/utils/SafeERC20.sol";
-import {ReentrancyGuard} from "openzeppelin-contracts/security/ReentrancyGuard.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IVault} from "./interfaces/IVault.sol";
 import {IStrategy} from "./interfaces/IStrategy.sol";
 
@@ -13,6 +14,7 @@ import {IStrategy} from "./interfaces/IStrategy.sol";
  */
 contract Vault is IVault, ERC20, ReentrancyGuard {
     using SafeERC20 for IERC20;
+    using Math for uint256;
 
     address public immutable asset;
     address public strategy;
@@ -39,8 +41,7 @@ contract Vault is IVault, ERC20, ReentrancyGuard {
      }
 
     function convertToShares(uint256 assets) public view override returns (uint256 shares) {
-        uint256 supply = totalSupply();
-        return supply == 0 ? assets : assets * supply / totalAssets();
+        return _convertToShares(assets, Math.Rounding.Down);
     }
 
     function convertToAssets(uint256 shares) public view override returns (uint256 assets) {
@@ -67,6 +68,11 @@ contract Vault is IVault, ERC20, ReentrancyGuard {
         return type(uint256).max; // TODO IF whiltelist max, ELSE 0
     }
 
+    /**
+    *@dev Allows an on-chain or off-chain user to simulate the effects of their mint at the current block, given
+     * current on-chain conditions.
+     * NOTE : No Deposit Fee being Supposed
+    */
     function previewMint(uint256 shares) public view returns (uint256 assets) {
         return convertToAssets(shares);
     }
@@ -79,26 +85,73 @@ contract Vault is IVault, ERC20, ReentrancyGuard {
         emit Deposit(msg.sender, receiver, assets, shares);
     }
 
-    function maxWithdraw(address owner) external view returns (uint256 maxAssets) {
-
+    function maxWithdraw(address owner) public view returns (uint256 maxAssets) {
+        return convertToAssets(balanceOf(owner));
     } 
 
-    function previewWithdraw(uint256 assets) external view returns (uint256 shares) {}
+    function previewWithdraw(uint256 assets) public view returns (uint256 shares) {
+        return convertToShares(assets);
+    }
 
     function withdraw(
         uint256 assets,
         address receiver,
         address owner
-    ) external override nonReentrant returns (uint256 shares) {}
+    ) external override nonReentrant returns (uint256 shares) {
+        require(assets <= maxWithdraw(owner), "OVER WITHDRAW");
+        require((shares = previewWithdraw(assets)) > 0, "TOO LOW WITHDRAWAL");
+        // uint256 allowed = allowance(owner, msg.sender);
+        // if(msg.sender != owner && allowed != type(uint256).max) allowance(owner, msg.sender) -= allowed - sha 
 
-    function maxRedeem(address owner) external view returns (uint256 maxShares) {}
+    }
+
+    function maxRedeem(address owner) public view returns (uint256 maxShares) {
+        return balanceOf(owner);
+    }
 
     function previewRedeem(uint256 shares) external view returns (uint256 assets) {
+        return _convertToAssets(shares, Math);
     }
 
     function redeem(
         uint256 shares,
         address receiver,
         address owner
-    ) external returns (uint256 assets) {}
+    ) external returns (uint256 assets) {
+        require(shares <= maxRedeem(owner), "OVER REDEEM");
+        require((assets = previewRedeem(shares)) > 0, "TOO LOW REDEEM");
+        // redeem From strategy
+        _redeem();
+    }
+
+    // function _convertToShares(uint256 assets, Math.Rounding rounding) internal view returns(uint256 shares) {
+    //     uint256 supply = totalSupply();
+    //     return supply == 0 ? assets : assets * supply / totalAssets();
+    // }
+
+    // function _convertToAssets(uint256 shares, Math.Rounding rounding) internal view returns(uint256 assets) {
+
+    // }
+
+    function _deposit(address caller, address receiver, uint256 assets, uint256 shares) internal {
+        IERC20(asset).safeTransferFrom(caller, address(this), assets);
+        _mint(receiver, shares);
+        emit Deposit(msg.sender, receiver, assets, shares);
+    }
+
+    function _withdraw(address caller, address receiver, address owner, uint256 assets, uint256 shares) internal {
+        uint256 allowed = allowance[owner][msg.sender];
+        if(caller != owner && allowed != type(uint256).max) {
+            _spendAllowance(owner, caller, shares);
+        }
+        // Float check, and  withdraw from strategy
+        // if (assets > float) {
+        //  
+        // } else {
+        // 
+        // }
+        _burn(owner, shares);
+        IERC20(asset).safeTransfer(receiver, assets);
+        emit Withdraw(caller, receiver, owner, assets, shares);
+    }
 }
