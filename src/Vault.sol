@@ -7,7 +7,6 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IVault} from "./interfaces/IVault.sol";
 import {IStrategy} from "./interfaces/IStrategy.sol";
-import "forge-std/console.sol";
 
 /**
  * @title Vault
