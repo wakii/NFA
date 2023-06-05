@@ -9,20 +9,20 @@ import {ISwapRouter} from '@uniswap/v3-periphery/contracts/interfaces/ISwapRoute
 contract SwapModule {
     IUniswapV3Factory public swapFactory;
     ISwapRouter public router;
-    uint256 public fee = 3000;
+    uint24 public fee = 3000;
 
     constructor(address factory_) {
         swapFactory = IUniswapV3Factory(factory_);
     }
 
-    function estimateAmountOut(address tokenIn, address tokenOut, uint256 amountIn) public view returns(uint256 amountOut) {
+    function estimateAmountOut(address tokenIn, address tokenOut, uint128 amountIn) public view returns(uint256 amountOut) {
         if(amountIn == 0) return 0;
 
         address pool = swapFactory.getPool(tokenIn, tokenOut, fee);
         require(pool != address(0), "POOL NOT EXISTS");
 
-        (int24 tick, ) = OracleLibrary.consult(pool, secondsAgo=10);
-        amountOut = OracleLibary.getQuoteAtTick(
+        (int24 tick, ) = OracleLibrary.consult(pool, 10);
+        amountOut = OracleLibrary.getQuoteAtTick(
             tick,
             amountIn,
             tokenIn,
