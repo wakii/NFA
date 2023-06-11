@@ -11,34 +11,39 @@ contract SwapModule {
     ISwapRouter public router;
     uint24 public fee = 3000;
 
-    constructor(address factory_) {
+    constructor(address factory_, address router_) {
         swapFactory = IUniswapV3Factory(factory_);
+        router = ISwapRouter(router_);
     }
 
-    function estimateAmountOut(address tokenIn, address tokenOut, uint128 amountIn) public view returns(uint256 amountOut) {
+    function estimateAmountOut(address tokenIn, address tokenOut, uint256 amountIn) public view returns(uint256 amountOut) {
         if(amountIn == 0) return 0;
 
         address pool = swapFactory.getPool(tokenIn, tokenOut, fee);
         require(pool != address(0), "POOL NOT EXISTS");
 
-        (int24 tick, ) = OracleLibrary.consult(pool, 10);
+        (int24 tick, ) = OracleLibrary.consult(pool, 10); // 10 seconds ago
         amountOut = OracleLibrary.getQuoteAtTick(
             tick,
-            amountIn,
+            uint128(amountIn), // casting 
             tokenIn,
             tokenOut
             );
     }   
 
-    // function swapExactInput(uint256 amountIn) public returns (uint amountOut) {
-    //     ISwapRouter.ExactInputSingleParams memory params = ISwapRouter.ExactInputSingleParams({
-    //         tokenIn: address(_asset),
-    //         tokenOut: address(_want),
-    //         fee: poolFee,
-    //         recipient: address(this),
-    //         deadline: block.timestamp,
-    //         amountIn: amountIn,
-    //         amountOutMinimum: 0,
-    //     })
-    // }
+    function swapExactInput(address tokenIn_, address tokenOut_, uint256 amountIn_, address receiver_) public returns (uint amountOut) {
+        uint lastTokenOut = estimateAmountOut(tokenIn_, tokenOut_, amountIn_);
+
+        ISwapRouter.ExactInputSingleParams memory params = ISwapRouter.ExactInputSingleParams({
+            tokenIn: tokenIn_,
+            tokenOut: tokenOut_,
+            fee: fee,
+            recipient: receiver_,
+            deadline: block.timestamp,
+            amountIn: amountIn_,
+            amountOutMinimum: lastTokenOut * (1000 - 5) / 1000, // 0.5% slippage
+            sqrtPriceLimitX96: 0
+        });
+        amountOut = router.exactInputSingle(params);
+    }
 }

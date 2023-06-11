@@ -1,0 +1,8 @@
+{ "solidity.packageDefaultDependenciesContractsDirectory": "src", 
+"solidity.packageDefaultDependenciesDirectory": "lib",
+ "solidity.compileUsingRemoteVersion": "v0.8.15", 
+"solidity.remappings": [ "forge-std/=lib/forge-std/src/", 
+                     "@openzeppelin/=lib/openzeppelin-contracts/", "@openzeppelin/=lib/openzeppelin-contracts/",
+                     "@uniswap/v3-periphery/=lib/v3-periphery",
+                     "@uniswap/v3-core/=lib/v3-core"] 
+} 

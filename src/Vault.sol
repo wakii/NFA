@@ -27,22 +27,24 @@ contract Vault is IVault, ERC20, ReentrancyGuard {
         _asset = IERC20(asset_);
     }
 
-
     function asset() public view override returns (address) {
         return address(_asset);
     }
 
-    /**
-     * @dev Returns the total amount of the underlying asset that is “managed” by Vault.
-     *
-     * - SHOULD include any compounding that occurs from yield.
-     * - MUST be inclusive of any fees that are charged against assets in the Vault.
-     * - MUST NOT revert.
-     */
     function totalAssets() public view override returns(uint256 totalManagedAssets) {
-        // return IERC20(asset).balanceOf(address(this)) + IStrategy(strategy).totalAssets();
-        return _asset.balanceOf(address(this)); // TODO add Strategy want balance;
+        return available() + IStrategy(strategy).totalAssets();
      }
+
+    function available() public view returns(uint256 assetBalance) {
+        return _asset.balanceOf(address(this));
+    }
+
+
+    function addStrategy(address strategyAddress_) external {
+        require(strategyAddress_ != address(0x0), "ZERO ADDRESS");
+        require(IStrategy(strategyAddress_).asset() == address(_asset), "INVALID ASSET");
+        strategy = strategyAddress_; // TODO strategy list
+    }
 
     function convertToShares(uint256 assets) public view override returns (uint256 shares) {
         return _convertToShares(assets, Math.Rounding.Down);
@@ -118,8 +120,12 @@ contract Vault is IVault, ERC20, ReentrancyGuard {
         _withdraw(_msgSender(), receiver, owner, assets, shares);
     }
 
+    function rebalance() public {
+        _depositIntoStrategy(strategy, _asset.balanceOf(address(this)));
+    }
+
     /////////////////////////////////////
-    ////////// INTERNAL /////////////////
+    //           INTERNAL 
     /////////////////////////////////////
 
     function _convertToShares(uint256 assets, Math.Rounding rounding) internal view returns(uint256 shares) {
@@ -142,15 +148,23 @@ contract Vault is IVault, ERC20, ReentrancyGuard {
         if(caller != owner) {
             _spendAllowance(owner, caller, shares);
         }
-
-        // TODO  Float check, and  withdraw from strategy
-        // if (assets > float) {
-        //  
-        // } else {
-        // 
-        // }
         _burn(owner, shares);
+
+        if (assets > available()) {
+            uint256 strategyWithdrawal = assets - available();
+            _redeemFromStrategy(strategy, strategyWithdrawal);
+            uint256 afterWithdrawal = available();
+            if (assets > afterWithdrawal) assets = afterWithdrawal;
+        }
         _asset.safeTransfer(receiver, assets);
         emit Withdraw(caller, receiver, owner, assets, shares);
+    }
+
+    function _depositIntoStrategy(address strategyAddress, uint256 assetAmount) private {
+        _asset.safeTransfer(strategyAddress, assetAmount);
+    } 
+    
+    function _redeemFromStrategy(address strategyAddress, uint256 assetAmount) private {
+        IStrategy(strategyAddress).withdraw(assetAmount);
     }
 }
