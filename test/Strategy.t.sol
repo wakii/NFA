@@ -31,7 +31,7 @@ contract StrategyTest is Test {
         vault = new Vault(address(weth), "TestVAULT", "TVLT");
         weth.deposit{value: 10000000}(); 
 
-        strategy = new Strategy(address(weth), address(wstEth), 0xE592427A0AEce92De3Edee1F18E0157C05861564, 0x1F98431c8aD98523631AE4a59f267346ea31F984);
+        strategy = new Strategy(address(vault), address(weth), address(wstEth), 0xE592427A0AEce92De3Edee1F18E0157C05861564, 0x1F98431c8aD98523631AE4a59f267346ea31F984);
         vault.addStrategy(address(strategy));
     }
 
@@ -85,5 +85,15 @@ contract StrategyTest is Test {
         assertEq(vault.totalAssets(), 0);
         assertApproxEqAbs(beforeWeth, afterWeth, beforeWeth/ 100); // 1% loss or return allow
     }
+
+    function testFailBadOwnership() public {
+        address badUser = makeAddr('bad');
+        
+        vm.expectRevert("Unauthorized Caller : Vault");
+        vm.prank(badUser);
+        strategy.withdraw(10);
+    }
+
+
 
 }

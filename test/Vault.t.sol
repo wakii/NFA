@@ -7,6 +7,8 @@
 // import {ERC20Mock} from "@openzeppelin/contracts/mocks/ERC20Mock.sol";
 // import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+///@notice Migrated to VaultWithFork to test in arbitrum fork environment
+///@dev    To test, uncomment
 // contract VaultTest is Test {
 //     Vault public vault;
 //     ERC20Mock public want;

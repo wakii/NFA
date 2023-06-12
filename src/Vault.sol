@@ -5,6 +5,7 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IVault} from "./interfaces/IVault.sol";
 import {IStrategy} from "./interfaces/IStrategy.sol";
 
@@ -12,7 +13,7 @@ import {IStrategy} from "./interfaces/IStrategy.sol";
  * @title Vault
  * @author Wakii
  */
-contract Vault is IVault, ERC20, ReentrancyGuard {
+contract Vault is IVault, ERC20, ReentrancyGuard, Ownable {
     using SafeERC20 for IERC20;
     using Math for uint256;
 
@@ -40,7 +41,7 @@ contract Vault is IVault, ERC20, ReentrancyGuard {
     }
 
 
-    function addStrategy(address strategyAddress_) external {
+    function addStrategy(address strategyAddress_) external onlyOwner {
         require(strategyAddress_ != address(0x0), "ZERO ADDRESS");
         require(IStrategy(strategyAddress_).asset() == address(_asset), "INVALID ASSET");
         strategy = strategyAddress_; // TODO strategy list

@@ -6,8 +6,10 @@ import {IUniswapV3Pool} from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Po
 import {ISwapRouter} from '@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
 
-library SwapModuleLib {
 
+///@notice Library for swaping with Uniswap-V3 functions. 
+///@dev    Refs : https://blog.uniswap.org/uniswap-v3-math-primer
+library SwapModuleLib {
     function estimateAmountOut(address factory, address tokenIn, address tokenOut, uint256 amountIn) internal view returns(uint256 amountOut) {
         if(amountIn == 0) return 0;
         IUniswapV3Pool pool = IUniswapV3Pool(IUniswapV3Factory(factory).getPool(tokenIn, tokenOut, 3000));
