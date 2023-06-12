@@ -20,6 +20,13 @@ contract Vault is IVault, ERC20, ReentrancyGuard, Ownable {
     IERC20 private immutable _asset;
     address public strategy;
 
+    event AddStrategy(address strategyAddress);
+    event Deposit(address caller,address receiver,uint256 assets, uint256 shares, uint256 timestamp);
+    event Mint(address caller, address receiver, uint256 assets, uint256 shares, uint256 timestamp);
+    event Withdraw(address caller, address receiver, address owner, uint256 assets, uint256 shares, uint256 timestamp);    
+    event Redeem(address caller, address receiver, address owner, uint256 assets, uint256 shares, uint256 timestamp);    
+    event Rebalance(address strategy, uint256 assets, uint256 timestamp);
+
     constructor(
         address asset_,
         string memory name_,
@@ -45,6 +52,7 @@ contract Vault is IVault, ERC20, ReentrancyGuard, Ownable {
         require(strategyAddress_ != address(0x0), "ZERO ADDRESS");
         require(IStrategy(strategyAddress_).asset() == address(_asset), "INVALID ASSET");
         strategy = strategyAddress_; // TODO strategy list
+        emit AddStrategy(strategyAddress_);
     }
 
     function convertToShares(uint256 assets) public view override returns (uint256 shares) {
@@ -91,12 +99,16 @@ contract Vault is IVault, ERC20, ReentrancyGuard, Ownable {
         require(assets <= maxDeposit(receiver), "DEPOSIT OVER MAX");
         require((shares = previewDeposit(assets)) > 0, "NOT ENOUGH ASSETS");
         _deposit(_msgSender(), receiver, assets, shares);
+
+        emit Deposit(_msgSender(), receiver, assets, shares, block.timestamp);
     }
 
     function mint(uint256 shares, address receiver) public returns (uint256 assets) {
         require(shares <= maxMint(receiver), "OVER MINT");
         require((assets = previewMint(shares)) > 0, "NOT ENOUGH SHARES");
         _deposit(_msgSender(), receiver, assets, shares);
+
+        emit Mint(_msgSender(), receiver, assets, shares, block.timestamp);
     }
 
 
@@ -108,6 +120,8 @@ contract Vault is IVault, ERC20, ReentrancyGuard, Ownable {
         require(assets <= maxWithdraw(owner), "OVER WITHDRAW");
         require((shares = previewWithdraw(assets)) > 0, "TOO LOW WITHDRAWAL");
         _withdraw(_msgSender(), receiver, owner, assets, shares);
+
+        emit Withdraw(_msgSender(), receiver, owner, assets, shares, block.timestamp);
     }
 
 
@@ -119,10 +133,13 @@ contract Vault is IVault, ERC20, ReentrancyGuard, Ownable {
         require(shares <= maxRedeem(owner), "OVER REDEEM");
         require((assets = previewRedeem(shares)) > 0, "TOO LOW REDEEM");
         _withdraw(_msgSender(), receiver, owner, assets, shares);
+        emit Redeem(_msgSender(), receiver, owner, assets, shares, block.timestamp);
     }
 
     function rebalance() public {
-        _depositIntoStrategy(strategy, _asset.balanceOf(address(this)));
+        uint depositAmount = _asset.balanceOf(address(this));
+        _depositIntoStrategy(strategy, depositAmount);
+        emit Rebalance(address(strategy), depositAmount, block.timestamp);
     }
 
     /////////////////////////////////////

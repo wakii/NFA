@@ -42,7 +42,7 @@ contract Strategy is IStrategy, Ownable {
     }
 
     function balanceOfPool() public view returns (uint) {
-        return SwapModuleLib.estimateAmountOut(factory, want, asset, IERC20(want).balanceOf(address(this)));
+        return estimateAmountOut(want, asset, IERC20(want).balanceOf(address(this)));
     }
 
     function setVault(address vault_) external onlyOwner {
@@ -55,8 +55,8 @@ contract Strategy is IStrategy, Ownable {
         require(factory_ != address(0x0), "Invalid Address");
         router = ISwapRouter(router_);
         factory = factory_;
-        IERC20(asset).approve(router, type(uint256).max);
-        IERC20(want).approve(router, type(uint256).max);
+        IERC20(asset).approve(address(router), type(uint256).max);
+        IERC20(want).approve(address(router), type(uint256).max);
         emit SetSwapModuleInfo(router_, factory_);
     }
 
@@ -72,7 +72,7 @@ contract Strategy is IStrategy, Ownable {
         uint256 currentUnderlying = balanceOfUnderlying();
 
         if(amountDebt > currentUnderlying) {
-            uint256 lastAmountInWithExtra = _estimateAmountIn(asset, want, amountDebt)  * (1000 + 5)/ 1000;
+            uint256 lastAmountInWithExtra = estimateAmountIn(asset, want, amountDebt)  * (1000 + 5)/ 1000;
             uint256 amountIn = 
                 lastAmountInWithExtra > IERC20(want).balanceOf(address(this)) ? 
                  _swapExactInput(want, asset, IERC20(want).balanceOf(address(this))) :
@@ -86,12 +86,12 @@ contract Strategy is IStrategy, Ownable {
     }
 
     ///@notice Calculate the amount of tokenOut with amountIn of tokenIn
-    function _estimateAmountOut(address tokenIn, address tokenOut, uint256 amountIn) internal view returns(uint256 amountOut) {
+    function estimateAmountOut(address tokenIn, address tokenOut, uint256 amountIn) public view returns(uint256 amountOut) {
         return SwapModuleLib.estimateAmountOut(factory, tokenIn, tokenOut, amountIn);
     }
     
     ///@notice Calculate the amount of tokenIn needed to get amountOut of tokenOut
-    function _estimateAmountIn(address tokenIn, address tokenOut, uint256 amountOut) internal view returns(uint256 amountIn) {
+    function estimateAmountIn(address tokenIn, address tokenOut, uint256 amountOut) public view returns(uint256 amountIn) {
         return SwapModuleLib.estimateAmountIn(factory, tokenIn, tokenOut, amountOut);
     }
 

@@ -56,7 +56,7 @@ contract StrategyTest is Test {
 
     function testSwap() public {
         testInitialDepositSet();
-        strategy.swap();
+        strategy.deposit();
         console.log(weth.balanceOf(address(strategy)));
         console.log(wstEth.balanceOf(address(strategy)));
         console.log(vault.totalAssets());
@@ -76,7 +76,7 @@ contract StrategyTest is Test {
     function testWithdraw() public {
         uint256 beforeWeth = weth.balanceOf(address(this));
         testInitialDepositSet();
-        strategy.swap();
+        strategy.deposit();
         uint shares = vault.balanceOf(address(this));
         // console.log(strategy.estimateAmountOut(address(wstEth), address(weth), 8893239));
         // console.log(strategy.estimateAmountIn(address(weth), address(wstEth), 10052780));
@@ -86,7 +86,7 @@ contract StrategyTest is Test {
         assertApproxEqAbs(beforeWeth, afterWeth, beforeWeth/ 100); // 1% loss or return allow
     }
 
-    function testFailBadOwnership() public {
+    function testFail_BadOwnership() public {
         address badUser = makeAddr('bad');
         
         vm.expectRevert("Unauthorized Caller : Vault");
