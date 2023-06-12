@@ -7,6 +7,8 @@ import {IStETH} from "./interfaces/IStETH.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {SwapModuleLib} from "./SwapModuleLib.sol";
+import "forge-std/console.sol";
+
 
 contract Strategy is IStrategy {
     using SafeERC20 for IERC20;
@@ -63,26 +65,33 @@ contract Strategy is IStrategy {
     }
 
     // TODO ownership check
+    ///@dev When underlying asset(float) is not enough to cover debt for withdrawal, 
+    ///     Restore underlying asset tokens (by re-swap want into asset) 
+    ///     Include the extra avilable(0.5%) for slippage in coverting want into asset.
     function withdraw(uint256 amountDebt) public {
         uint256 currentUnderlying = balanceOfUnderlying();
-        if(amountDebt > currentUnderlying) {
-            uint256 lastAmountIn = SwapModuleLib.estimateAmountOut(factory, want, asset, amountDebt);
 
-            // uint256 lastAmountIn = SwapModuleLib.estimateAmountOut(factory, asset, want, amountDebt);
-            // console.log(lastAmountIn);
-            // console.log(IERC20(want).balanceOf(address(this)));
-            uint256 amountIn = _swapExactOutput(want, asset, amountDebt);   
-            require(lastAmountIn * (1000 + 5) / 1000 > amountIn, "TOO MUCH SLIPPAGE");
+        if(amountDebt > currentUnderlying) {
+            uint256 lastAmountInWithExtra = SwapModuleLib.estimateAmountIn(factory, asset, want, amountDebt)  * (1000 + 5)/ 1000;
+            uint256 amountIn = 
+                lastAmountInWithExtra > IERC20(want).balanceOf(address(this)) ? 
+                 _swapExactInput(want, asset, IERC20(want).balanceOf(address(this))) :
+                 _swapExactOutput(asset, want, lastAmountInWithExtra);
             if(amountDebt > amountIn) {
-                uint256 loss = amountDebt - amountIn; // TODO LOSS 
+                uint256 loss = amountDebt - amountIn; // TODO Report LOSS 
                 amountDebt -= loss;
             }
         }
         if(amountDebt > 0) IERC20(asset).safeTransfer(msg.sender, amountDebt);
     }
 
-    function estimateAmountOut(address tokenIn, address tokenOut, uint256 amountIn) public returns(uint256 amountOut) {
+    ///@notice Calculate the amount of tokenOut with amountIn of tokenIn
+    function estimateAmountOut(address tokenIn, address tokenOut, uint256 amountIn) public view returns(uint256 amountOut) {
         return SwapModuleLib.estimateAmountOut(factory, tokenIn, tokenOut, amountIn);
-        // return SwapModuleLib.test(factory, tokenIn, tokenOut, amountIn);
+    }
+    
+    ///@notice Calculate the amount of tokenIn needed to get amountOut of tokenOut
+    function estimateAmountIn(address tokenIn, address tokenOut, uint256 amountOut) public view returns(uint256 amountIn) {
+        return SwapModuleLib.estimateAmountIn(factory, tokenIn, tokenOut, amountOut);
     }
 }

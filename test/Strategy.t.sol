@@ -14,6 +14,8 @@ interface IWETH {
     function deposit() external payable;
 }
 
+///@notice Test for Strategy Working.
+///@dev    Test in fork environment(arbitrum) : `forge test --fork-url ${FORK_ARB_URL} --match-path test/Strategy.t.sol -vvvv`
 contract StrategyTest is Test {
     IWETH public weth;
     IERC20 public wstEth;
@@ -52,9 +54,6 @@ contract StrategyTest is Test {
         assertEq(strategy.totalAssets(), depositAmount);
     }
 
-    function testTotalAsset() public {
-    }
-
     function testSwap() public {
         testInitialDepositSet();
         strategy.swap();
@@ -64,22 +63,27 @@ contract StrategyTest is Test {
         console.log(strategy.totalAssets());
     }
 
-    function testEstimateAmountIn() public {
+    function testEstimateAmounts() public {
         console.log(strategy.estimateAmountOut(address(weth), address(wstEth), 1000));
         console.log(strategy.estimateAmountOut(address(wstEth), address(weth), 1000));
+        
+        console.log(strategy.estimateAmountIn(address(weth), address(wstEth), 1000));
+        console.log(strategy.estimateAmountIn(address(wstEth), address(weth), 1000));
+        console.log(strategy.estimateAmountIn(address(weth), address(wstEth), 9969999));
+        console.log(strategy.estimateAmountOut(address(wstEth), address(weth), 8893239));
     }
 
-    // function testWithdraw() public {
-    //     uint256 beforeWeth = weth.balanceOf(address(this));
-    //     // console.log(beforeWeth);
-    //     testInitialDepositSet();
-    //     strategy.swap();
-    //     uint shares = vault.balanceOf(address(this));
-    //     // console.log(shares);
-    //     vault.redeem(shares, address(this), address(this));
-    //     // vault.withdraw(beforeWeth, address(this), address(this));
-    //     uint afterWeth = weth.balanceOf(address(this));
-    //     // console.log(afterWeth);
-    // }
+    function testWithdraw() public {
+        uint256 beforeWeth = weth.balanceOf(address(this));
+        testInitialDepositSet();
+        strategy.swap();
+        uint shares = vault.balanceOf(address(this));
+        // console.log(strategy.estimateAmountOut(address(wstEth), address(weth), 8893239));
+        // console.log(strategy.estimateAmountIn(address(weth), address(wstEth), 10052780));
+        vault.redeem(shares, address(this), address(this));
+        uint afterWeth = weth.balanceOf(address(this));
+        assertEq(vault.totalAssets(), 0);
+        assertApproxEqAbs(beforeWeth, afterWeth, beforeWeth/ 100); // 1% loss or return allow
+    }
 
 }

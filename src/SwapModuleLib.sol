@@ -22,8 +22,22 @@ library SwapModuleLib {
             amountIn * price / 1e18;
     }
 
+    function estimateAmountIn(address factory, address tokenIn, address tokenOut, uint256 amountOut) internal view returns(uint256 amountIn) {
+        if(amountOut == 0) return 0;
+        IUniswapV3Pool pool = IUniswapV3Pool(IUniswapV3Factory(factory).getPool(tokenIn, tokenOut, 3000));
+        require(address(pool) != address(0), "POOL NOT EXISTS");
 
-    ///@dev Version of using UniswapOracleLibrary. Use Pool Math Calculation instead for gas efficiency.
+        (uint160 sqrtPriceX96,,,,,,)  = pool.slot0();
+        uint256 price = 
+            (uint256(sqrtPriceX96)**2 * 10**(18-(IERC20(pool.token0()).decimals() - IERC20(pool.token1()).decimals()))) >> (96 * 2);
+        return amountIn = 
+            tokenIn == pool.token1() ? 
+            amountOut * 1e18 / price :
+            amountOut * price / 1e18;
+    }
+
+
+    ///@dev Deprecated. Version of using UniswapOracleLibrary. Use Pool Math Calculation instead for gas efficiency.
     // function estimateAmountOut(address factory, address tokenIn, address tokenOut, uint256 amountIn) internal view returns(uint256 amountOut) {
     //     if(amountIn == 0) return 0;
 
