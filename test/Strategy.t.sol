@@ -86,14 +86,12 @@ contract StrategyTest is Test {
         assertApproxEqAbs(beforeWeth, afterWeth, beforeWeth/ 100); // 1% loss or return allow
     }
 
-    function testFail_BadOwnership() public {
+    function testFailBadOwnership() public {
         address badUser = makeAddr('bad');
         
         vm.expectRevert("Unauthorized Caller : Vault");
         vm.prank(badUser);
         strategy.withdraw(10);
     }
-
-
 
 }
